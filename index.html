@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pictogramas · Pinares Altoverde School</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bitter:wght@500;700;800&family=Work+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="brand">
+      <img src="logo.png" alt="Logo Pinares Altoverde School" class="brand-logo">
+    </div>
+    <p class="site-eyebrow">Herramienta de apoyo visual para docentes</p>
+  </header>
+
+  <main>
+    <section class="hero">
+      <h1 class="hero-title">Escribe una oración,<br>léela en pictogramas</h1>
+      <p class="hero-subtitle">Escribe una palabra o una oración completa. Cada palabra se convierte en su pictograma de ARASAAC, y puedes escuchar la oración leída en voz alta.</p>
+
+      <form id="search-form" class="search-bar" autocomplete="off">
+        <textarea
+          id="search-input"
+          name="oracion"
+          rows="2"
+          placeholder="Ej: Hoy quiero jugar en el patio con mis amigos"
+          aria-label="Escribe una palabra o una oración para ver sus pictogramas"
+          required
+        ></textarea>
+        <button type="submit" id="search-button">Ver pictogramas</button>
+      </form>
+
+      <div class="quick-words" aria-label="Frases frecuentes">
+        <span class="quick-label">Frecuentes:</span>
+        <button type="button" class="chip" data-word="hola">hola</button>
+        <button type="button" class="chip" data-word="quiero ir al baño">quiero ir al baño</button>
+        <button type="button" class="chip" data-word="tengo hambre">tengo hambre</button>
+        <button type="button" class="chip" data-word="estoy feliz">estoy feliz</button>
+        <button type="button" class="chip" data-word="estoy triste">estoy triste</button>
+        <button type="button" class="chip" data-word="necesito ayuda">necesito ayuda</button>
+        <button type="button" class="chip" data-word="quiero jugar">quiero jugar</button>
+        <button type="button" class="chip" data-word="terminé la tarea">terminé la tarea</button>
+      </div>
+    </section>
+
+    <section id="result-area" class="result-area" aria-live="polite">
+      <p id="hint-text" class="hint-text">Aquí aparecerá la tira de pictogramas de tu oración.</p>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p class="arasaac-credit">
+      Pictogramas de <a href="https://arasaac.org" target="_blank" rel="noopener">ARASAAC</a> (Gobierno de Aragón), bajo licencia
+      <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noopener">CC BY-NC-SA</a>. Autor: Sergio Palao. Procedencia: ARASAAC.org.
+    </p>
+    <p class="school-credit">© Pinares Altoverde School</p>
+  </footer>
+
+<script src="script.js"></script>
+</body>
+</html>
