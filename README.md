@@ -63,4 +63,4 @@ Luego visita `http://localhost:8000`.
 
 ## 📄 Licencia
 
-Este proyecto se distribuye bajo licencia [MIT](LICENSE) (o especifica la que prefieras). El uso de los pictogramas de ARASAAC está sujeto a su propia licencia CC BY-NC-SA, que **no permite uso comercial**.
+Este proyecto se distribuye bajo licencia MIT (o especifica la que prefieras). El uso de los pictogramas de ARASAAC está sujeto a su propia licencia CC BY-NC-SA, que **no permite uso comercial**.
