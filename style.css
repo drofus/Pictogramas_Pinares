@@ -589,6 +589,14 @@ body.modal-open{ overflow: hidden; }
   margin: 0;
 }
 
+.author-seal{
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  color: var(--charcoal-60);
+  margin: 8px 0 0;
+}
+
 /* ---------- Accesibilidad ---------- */
 @media (prefers-reduced-motion: reduce){
   *{ animation: none !important; transition: none !important; }
