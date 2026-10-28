@@ -53,6 +53,27 @@
     </section>
   </main>
 
+  <div id="zoom-modal" class="zoom-modal" hidden role="dialog" aria-modal="true" aria-labelledby="zoom-title">
+    <div class="zoom-backdrop" data-close></div>
+    <div class="zoom-dialog">
+      <div class="zoom-header">
+        <h2 id="zoom-title" class="zoom-title"></h2>
+        <button type="button" class="zoom-close" data-close aria-label="Cerrar">✕</button>
+      </div>
+      <div id="zoom-stage" class="zoom-stage">
+        <img id="zoom-img" alt="" draggable="false">
+      </div>
+      <div class="zoom-controls">
+        <button type="button" id="zoom-out" class="zoom-btn" aria-label="Alejar">−</button>
+        <span id="zoom-level" class="zoom-level">100%</span>
+        <button type="button" id="zoom-in" class="zoom-btn" aria-label="Acercar">+</button>
+        <button type="button" id="zoom-reset" class="zoom-btn zoom-btn-text">Restablecer</button>
+        <button type="button" id="zoom-download" class="zoom-btn zoom-btn-primary">⬇ Descargar</button>
+      </div>
+      <p class="zoom-help">Usa la rueda del ratón, los botones o pellizca para hacer zoom. Arrastra para mover la imagen.</p>
+    </div>
+  </div>
+
   <footer class="site-footer">
     <p class="arasaac-credit">
       Pictogramas de <a href="https://arasaac.org" target="_blank" rel="noopener">ARASAAC</a> (Gobierno de Aragón), bajo licencia

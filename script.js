@@ -12,6 +12,8 @@ const ARASAAC_SEARCH_URL = (word) =>
   `https://api.arasaac.org/v1/pictograms/${ARASAAC_LANGUAGE}/bestsearch/${encodeURIComponent(word)}`;
 const ARASAAC_IMAGE_URL = (id) =>
   `https://static.arasaac.org/pictograms/${id}/${id}_500.png`;
+const ARASAAC_DOWNLOAD_URL = (id) =>
+  `https://api.arasaac.org/v1/pictograms/${id}?download=true`;
 
 const form = document.getElementById("search-form");
 const input = document.getElementById("search-input");
@@ -111,6 +113,17 @@ function renderResultado(sentence, resultados) {
     tile.addEventListener("click", () => ciclarAlternativa(tile));
   });
 
+  document.querySelectorAll(".picto-tile[data-ids]").forEach((tile) => {
+    tile.querySelector(".picto-zoom-btn").addEventListener("click", (event) => {
+      event.stopPropagation();
+      abrirZoom(tile);
+    });
+    tile.querySelector(".picto-download-btn").addEventListener("click", (event) => {
+      event.stopPropagation();
+      descargarPictograma(idActual(tile), tile.dataset.word);
+    });
+  });
+
   document.getElementById("print-btn").addEventListener("click", () => window.print());
   document.getElementById("speak-btn").addEventListener("click", alternarLectura);
 
@@ -137,10 +150,15 @@ function renderTile(item, index) {
          data-word-index="${index}"
          data-current="0"
          data-ids='${JSON.stringify(opciones.map((o) => o._id))}'
+         data-word="${escapeHtml(word)}"
          ${tieneAlternativas ? `title="Clic para ver otra opción (1/${opciones.length})"` : ""}>
       <img src="${ARASAAC_IMAGE_URL(idPrincipal)}" alt="Pictograma de ${escapeHtml(word)}">
       <p class="picto-word">${escapeHtml(word)}</p>
       ${tieneAlternativas ? `<p class="picto-alt-hint">1 / ${opciones.length} · clic para cambiar</p>` : ""}
+      <div class="picto-actions">
+        <button type="button" class="picto-action picto-zoom-btn" aria-label="Ampliar pictograma de ${escapeHtml(word)}" title="Ampliar">🔍</button>
+        <button type="button" class="picto-action picto-download-btn" aria-label="Descargar pictograma de ${escapeHtml(word)}" title="Descargar">⬇</button>
+      </div>
     </div>
   `;
 }
@@ -157,6 +175,180 @@ function ciclarAlternativa(tile) {
   const hint = tile.querySelector(".picto-alt-hint");
   if (hint) hint.textContent = `${current + 1} / ${ids.length} · clic para cambiar`;
   tile.title = `Clic para ver otra opción (${current + 1}/${ids.length})`;
+}
+
+function idActual(tile) {
+  const ids = JSON.parse(tile.dataset.ids);
+  return ids[parseInt(tile.dataset.current, 10)];
+}
+
+/* ---------------------------------------------------------
+   Descarga de pictogramas
+   --------------------------------------------------------- */
+
+async function descargarPictograma(id, word) {
+  const nombre = `${nombreArchivo(word)}_arasaac_${id}.png`;
+  try {
+    const response = await fetch(ARASAAC_IMAGE_URL(id));
+    if (!response.ok) throw new Error(`Estado ${response.status}`);
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    dispararDescarga(url, nombre);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  } catch (error) {
+    // Si el navegador bloquea la descarga directa, usamos el enlace de descarga de ARASAAC.
+    console.warn("Descarga directa no disponible, usando ARASAAC:", error);
+    dispararDescarga(ARASAAC_DOWNLOAD_URL(id), nombre);
+  }
+}
+
+function dispararDescarga(url, nombre) {
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = nombre;
+  link.rel = "noopener";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+}
+
+function nombreArchivo(word) {
+  return (word || "pictograma")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "") || "pictograma";
+}
+
+/* ---------------------------------------------------------
+   Zoom individual de pictogramas
+   --------------------------------------------------------- */
+
+const ZOOM_MIN = 1;
+const ZOOM_MAX = 5;
+const ZOOM_STEP = 0.5;
+
+const zoomModal = document.getElementById("zoom-modal");
+const zoomStage = document.getElementById("zoom-stage");
+const zoomImg = document.getElementById("zoom-img");
+const zoomTitle = document.getElementById("zoom-title");
+const zoomLevel = document.getElementById("zoom-level");
+
+const zoomState = { scale: 1, x: 0, y: 0, id: null, word: "", trigger: null };
+const punteros = new Map();
+let distanciaPellizco = 0;
+
+function abrirZoom(tile) {
+  zoomState.id = idActual(tile);
+  zoomState.word = tile.dataset.word;
+  zoomState.trigger = document.activeElement;
+  zoomImg.src = ARASAAC_IMAGE_URL(zoomState.id);
+  zoomImg.alt = `Pictograma de ${zoomState.word}`;
+  zoomTitle.textContent = zoomState.word;
+  reiniciarZoom();
+  zoomModal.hidden = false;
+  document.body.classList.add("modal-open");
+  zoomModal.querySelector(".zoom-close").focus();
+}
+
+function cerrarZoom() {
+  zoomModal.hidden = true;
+  document.body.classList.remove("modal-open");
+  punteros.clear();
+  if (zoomState.trigger) zoomState.trigger.focus();
+}
+
+function aplicarZoom(scale) {
+  zoomState.scale = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, scale));
+  if (zoomState.scale === ZOOM_MIN) {
+    zoomState.x = 0;
+    zoomState.y = 0;
+  }
+  limitarDesplazamiento();
+  actualizarTransformacion();
+}
+
+function reiniciarZoom() {
+  zoomState.scale = 1;
+  zoomState.x = 0;
+  zoomState.y = 0;
+  actualizarTransformacion();
+}
+
+function limitarDesplazamiento() {
+  const maxX = (zoomStage.clientWidth * (zoomState.scale - 1)) / 2;
+  const maxY = (zoomStage.clientHeight * (zoomState.scale - 1)) / 2;
+  zoomState.x = Math.min(maxX, Math.max(-maxX, zoomState.x));
+  zoomState.y = Math.min(maxY, Math.max(-maxY, zoomState.y));
+}
+
+function actualizarTransformacion() {
+  zoomImg.style.transform = `translate(${zoomState.x}px, ${zoomState.y}px) scale(${zoomState.scale})`;
+  zoomLevel.textContent = `${Math.round(zoomState.scale * 100)}%`;
+  zoomStage.classList.toggle("zoomed", zoomState.scale > 1);
+}
+
+document.getElementById("zoom-in").addEventListener("click", () => aplicarZoom(zoomState.scale + ZOOM_STEP));
+document.getElementById("zoom-out").addEventListener("click", () => aplicarZoom(zoomState.scale - ZOOM_STEP));
+document.getElementById("zoom-reset").addEventListener("click", reiniciarZoom);
+document.getElementById("zoom-download").addEventListener("click", () =>
+  descargarPictograma(zoomState.id, zoomState.word)
+);
+
+zoomModal.querySelectorAll("[data-close]").forEach((el) => el.addEventListener("click", cerrarZoom));
+
+document.addEventListener("keydown", (event) => {
+  if (zoomModal.hidden) return;
+  if (event.key === "Escape") cerrarZoom();
+  else if (event.key === "+" || event.key === "=") aplicarZoom(zoomState.scale + ZOOM_STEP);
+  else if (event.key === "-") aplicarZoom(zoomState.scale - ZOOM_STEP);
+  else if (event.key === "0") reiniciarZoom();
+});
+
+zoomStage.addEventListener("wheel", (event) => {
+  event.preventDefault();
+  aplicarZoom(zoomState.scale * (event.deltaY < 0 ? 1.15 : 1 / 1.15));
+}, { passive: false });
+
+zoomStage.addEventListener("dblclick", () => {
+  if (zoomState.scale > 1) reiniciarZoom();
+  else aplicarZoom(2.5);
+});
+
+zoomStage.addEventListener("pointerdown", (event) => {
+  zoomStage.setPointerCapture(event.pointerId);
+  punteros.set(event.pointerId, { x: event.clientX, y: event.clientY });
+  if (punteros.size === 2) distanciaPellizco = distanciaEntrePunteros();
+});
+
+zoomStage.addEventListener("pointermove", (event) => {
+  const anterior = punteros.get(event.pointerId);
+  if (!anterior) return;
+  punteros.set(event.pointerId, { x: event.clientX, y: event.clientY });
+
+  if (punteros.size === 2) {
+    const distancia = distanciaEntrePunteros();
+    if (distanciaPellizco > 0) aplicarZoom(zoomState.scale * (distancia / distanciaPellizco));
+    distanciaPellizco = distancia;
+  } else if (zoomState.scale > 1) {
+    zoomState.x += event.clientX - anterior.x;
+    zoomState.y += event.clientY - anterior.y;
+    limitarDesplazamiento();
+    actualizarTransformacion();
+  }
+});
+
+["pointerup", "pointercancel"].forEach((tipo) =>
+  zoomStage.addEventListener(tipo, (event) => {
+    punteros.delete(event.pointerId);
+    distanciaPellizco = 0;
+  })
+);
+
+function distanciaEntrePunteros() {
+  const [a, b] = [...punteros.values()];
+  return Math.hypot(a.x - b.x, a.y - b.y);
 }
 
 /* ---------------------------------------------------------
